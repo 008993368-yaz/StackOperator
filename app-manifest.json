@@ -1,0 +1,25 @@
+{
+  "name": "StackOperator",
+  "url": "http://localhost:3000",
+  "hook_attributes": {
+    "url": "http://localhost:3000/api/webhooks/github",
+    "active": true
+  },
+  "redirect_url": "http://localhost:3000/api/auth/callback",
+  "callback_urls": ["http://localhost:3000/api/auth/callback"],
+  "setup_url": "http://localhost:3000",
+  "public": false,
+  "default_permissions": {
+    "metadata": "read",
+    "pull_requests": "read",
+    "contents": "read",
+    "actions": "write",
+    "checks": "write"
+  },
+  "default_events": [
+    "installation",
+    "installation_repositories",
+    "pull_request",
+    "workflow_run"
+  ]
+}

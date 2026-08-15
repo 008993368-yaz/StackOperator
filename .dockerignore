@@ -1,0 +1,11 @@
+node_modules
+.git
+.next
+.env
+.env.local
+*.pem
+coverage
+dist
+**/*.md
+apps/web/.next
+packages/database/src/generated
