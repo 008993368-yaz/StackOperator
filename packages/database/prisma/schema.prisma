@@ -1,0 +1,198 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String               @id @default(cuid())
+  githubUserId String               @unique
+  login        String
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  access       InstallationAccess[]
+}
+
+model Organization {
+  id              String         @id @default(cuid())
+  githubAccountId String         @unique
+  login           String
+  accountType     String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  installations   Installation[]
+}
+
+model Installation {
+  id                   String               @id @default(cuid())
+  githubInstallationId String               @unique
+  organizationId       String
+  organization         Organization         @relation(fields: [organizationId], references: [id])
+  suspendedAt          DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  repositories         Repository[]
+  access               InstallationAccess[]
+  webhookDeliveries    WebhookDelivery[]
+}
+
+model InstallationAccess {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  installationId String
+  installation   Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@unique([userId, installationId])
+}
+
+model Repository {
+  id             String         @id @default(cuid())
+  githubRepoId   String         @unique
+  installationId String
+  installation   Installation   @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  fullName       String
+  defaultBranch  String         @default("main")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  stacks         Stack[]
+  workflowRuns   WorkflowRun[]
+  decisions      Decision[]
+  savingsEvents  SavingsEvent[]
+
+  @@index([installationId, fullName])
+}
+
+model WebhookDelivery {
+  id                 String        @id @default(cuid())
+  githubDeliveryId   String        @unique
+  installationId     String?
+  installation       Installation? @relation(fields: [installationId], references: [id])
+  event              String
+  action             String?
+  status             String
+  repositoryFullName String?
+  pullRequestNumber  Int?
+  errorMessage       String?
+  processedAt        DateTime?
+  createdAt          DateTime      @default(now())
+}
+
+model Stack {
+  id                String       @id @default(cuid())
+  repositoryId      String
+  repository        Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  provider          String
+  githubStackId     String
+  githubStackNumber Int
+  baseBranch        String
+  status            String
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  layers            StackLayer[]
+
+  @@unique([repositoryId, githubStackId])
+}
+
+model StackLayer {
+  id                      String          @id @default(cuid())
+  stackId                 String
+  stack                   Stack           @relation(fields: [stackId], references: [id], onDelete: Cascade)
+  position                Int
+  pullRequestNumber       Int
+  githubPrId              String
+  title                   String
+  headSha                 String
+  baseSha                 String
+  headRef                 String          @default("")
+  parentPullRequestNumber Int?
+  prState                 String          @default("open")
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  snapshots               LayerSnapshot[]
+  workflowRuns            WorkflowRun[]
+  decisions               Decision[]
+
+  @@unique([stackId, pullRequestNumber])
+  @@index([stackId, position])
+  @@index([headSha])
+}
+
+model LayerSnapshot {
+  id               String     @id @default(cuid())
+  layerId          String
+  layer            StackLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+  headSha          String
+  classes          String[]
+  unmatchedPaths   String[]
+  testsNeeded      String[]
+  githubCheckRunId String?
+  createdAt        DateTime   @default(now())
+
+  @@unique([layerId, headSha])
+}
+
+model WorkflowRun {
+  id           String      @id @default(cuid())
+  githubRunId  String      @unique
+  repositoryId String
+  repository   Repository  @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  layerId      String?
+  layer        StackLayer? @relation(fields: [layerId], references: [id])
+  workflowName String
+  workflowPath String
+  event        String
+  status       String
+  conclusion   String?
+  headSha      String
+  headBranch   String?
+  htmlUrl      String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  decisions    Decision[]
+
+  @@index([headSha])
+  @@index([repositoryId, workflowPath])
+}
+
+model Decision {
+  id               String        @id @default(cuid())
+  repositoryId     String
+  repository       Repository    @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  layerId          String?
+  layer            StackLayer?   @relation(fields: [layerId], references: [id])
+  workflowRunId    String?
+  workflowRun      WorkflowRun?  @relation(fields: [workflowRunId], references: [id])
+  action           String
+  reason           String
+  reasonCode       String
+  idempotencyKey   String        @unique
+  estimatedMinutes Float?
+  estimatedCostUsd Float?
+  createdAt        DateTime      @default(now())
+  savings          SavingsEvent?
+
+  @@index([repositoryId, createdAt])
+}
+
+model SavingsEvent {
+  id               String     @id @default(cuid())
+  decisionId       String     @unique
+  decision         Decision   @relation(fields: [decisionId], references: [id], onDelete: Cascade)
+  repositoryId     String
+  repository       Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  minutesEstimated Float
+  costEstimatedUsd Float
+  pricingSku       String
+  isEstimate       Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+
+  @@index([repositoryId, createdAt])
+}

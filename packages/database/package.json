@@ -1,0 +1,28 @@
+{
+  "name": "@stackoperator/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "postinstall": "prisma generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "push": "prisma db push",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "@stackoperator/shared": "workspace:*",
+    "@stackoperator/stack-core": "workspace:*",
+    "pg-boss": "^10.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.17.0",
+    "prisma": "^6.13.0",
+    "typescript": "^5.9.2"
+  }
+}
