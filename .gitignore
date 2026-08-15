@@ -1,0 +1,12 @@
+node_modules
+dist
+.next
+coverage
+.env
+.env.local
+*.pem
+*.key
+.DS_Store
+.turbo
+*.log
+packages/database/src/generated
