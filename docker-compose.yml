@@ -1,0 +1,44 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: stackoperator
+      POSTGRES_PASSWORD: stackoperator
+      POSTGRES_DB: stackoperator
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stackoperator -d stackoperator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://stackoperator:stackoperator@postgres:5432/stackoperator
+      APP_BASE_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://stackoperator:stackoperator@postgres:5432/stackoperator
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
